@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { supabase } from "@/lib/supabase";
 
-const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 52428800);
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 52428800); // 50MB default
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "files";
 
 export async function POST(request) {
@@ -59,9 +59,3 @@ export async function POST(request) {
     return NextResponse.json({ error: "Upload gagal" }, { status: 500 });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
