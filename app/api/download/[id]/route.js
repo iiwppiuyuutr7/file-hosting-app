@@ -16,10 +16,6 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "File tidak ditemukan" }, { status: 404 });
   }
 
-  if (file.expires_at && new Date(file.expires_at) < new Date()) {
-    return NextResponse.json({ error: "File sudah expired" }, { status: 410 });
-  }
-
   const { data: signedData, error: signError } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(file.storage_path, 3600);
