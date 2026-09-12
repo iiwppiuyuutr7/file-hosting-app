@@ -2,21 +2,35 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { supabase } from "@/lib/supabase";
 
-const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE || 52428800); // 50MB default
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "files";
+const TOTAL_QUOTA = 52428800; // 50 MB, kuota total situs
 
 export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file");
+    const guestId = formData.get("guestId");
 
     if (!file) {
       return NextResponse.json({ error: "Tidak ada file yang dikirim" }, { status: 400 });
     }
+    if (!guestId) {
+      return NextResponse.json({ error: "guestId wajib diisi" }, { status: 400 });
+    }
 
-    if (file.size > MAX_FILE_SIZE) {
+    const { data: guestRow } = await supabase.from("guests").select("id").eq("id", guestId).single();
+    if (!guestRow) {
+      await supabase.from("guests").insert({ id: guestId });
+    }
+
+    const { data: allSizes, error: usageError } = await supabase.from("files").select("size");
+    if (usageError) throw new Error(usageError.message);
+
+    const used = allSizes.reduce((sum, f) => sum + Number(f.size || 0), 0);
+    if (used + file.size > TOTAL_QUOTA) {
+      const sisaMB = Math.max(0, (TOTAL_QUOTA - used) / 1024 / 1024).toFixed(1);
       return NextResponse.json(
-        { error: `File terlalu besar. Maksimal ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { error: `Kuota penyimpanan situs penuh. Sisa ruang: ${sisaMB} MB` },
         { status: 413 }
       );
     }
@@ -31,19 +45,22 @@ export async function POST(request) {
         contentType: file.type || "application/octet-stream",
       });
 
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
+    if (uploadError) throw new Error(uploadError.message);
 
-    const { error: dbError } = await supabase.from("files").insert({
-      id: fileId,
-      original_name: file.name,
-      storage_path: storagePath,
-      size: file.size,
-      mime_type: file.type,
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    });
+    const { data: inserted, error: dbError } = await supabase
+      .from("files")
+      .insert({
+        id: fileId,
+        original_name: file.name,
+        storage_path: storagePath,
+        size: file.size,
+        mime_type: file.type,
+        guest_id: guestId,
+        created_at: new Date().toISOString(),
+        expires_at: null,
+      })
+      .select()
+      .single();
 
     if (dbError) {
       await supabase.storage.from(BUCKET).remove([storagePath]);
@@ -51,8 +68,12 @@ export async function POST(request) {
     }
 
     return NextResponse.json({
-      id: fileId,
-      url: `${request.nextUrl.origin}/f/${fileId}`,
+      id: inserted.id,
+      name: inserted.original_name,
+      size: inserted.size,
+      mimeType: inserted.mime_type,
+      createdAt: inserted.created_at,
+      url: `${request.nextUrl.origin}/f/${inserted.id}`,
     });
   } catch (err) {
     console.error(err);
