@@ -4,6 +4,11 @@ async function getFileInfo(id, origin) {
   return res.json();
 }
 
+function formatSize(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export default async function DownloadPage({ params }) {
   const { headers } = await import("next/headers");
   const host = headers().get("host");
@@ -11,30 +16,61 @@ export default async function DownloadPage({ params }) {
   const origin = `${protocol}://${host}`;
   const file = await getFileInfo(params.id, origin);
 
-  const cardStyle = { width: "100%", maxWidth: 420, background: "#151f33", border: "1px solid #263250", borderRadius: 20, padding: "40px 32px", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", textAlign: "center" };
+  const wrap = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  };
+  const card = {
+    width: "100%",
+    maxWidth: 380,
+    border: "1px solid #232323",
+    borderRadius: 10,
+    padding: 28,
+    textAlign: "center",
+  };
 
   if (!file) {
     return (
-      <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>😕</div>
-          <h1 style={{ fontSize: 20, color: "#fff", margin: "0 0 8px" }}>File tidak ditemukan</h1>
-          <p style={{ color: "#8b95ab", fontSize: 14, margin: 0 }}>Link ini tidak valid atau file sudah expired.</p>
+      <main style={wrap}>
+        <div style={card}>
+          <p style={{ color: "#7a7a7a", fontFamily: "var(--font-mono)", fontSize: 13, margin: 0 }}>
+            File tidak ditemukan atau link sudah tidak berlaku.
+          </p>
         </div>
       </main>
     );
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={cardStyle}>
-        <div style={{ width: 56, height: 56, margin: "0 auto 20px", borderRadius: 16, background: "linear-gradient(135deg, #3b82f6, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>📄</div>
-        <h1 style={{ fontSize: 18, color: "#fff", margin: "0 0 4px", wordBreak: "break-all" }}>{file.name}</h1>
-        <p style={{ color: "#8b95ab", fontSize: 14, margin: "0 0 24px" }}>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+    <main style={wrap}>
+      <div style={card}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 14, wordBreak: "break-all", margin: "0 0 6px" }}>
+          {file.name}
+        </p>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#7a7a7a", margin: "0 0 20px" }}>
+          {formatSize(file.size)}
+        </p>
         <a href={file.downloadUrl} style={{ textDecoration: "none" }}>
-          <button style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #3b82f6, #2563eb)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>Download</button>
+          <button
+            style={{
+              background: "#ededed",
+              color: "#000",
+              border: "none",
+              borderRadius: 8,
+              padding: "12px 24px",
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Unduh
+          </button>
         </a>
       </div>
     </main>
   );
-    }
+}
