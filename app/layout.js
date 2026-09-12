@@ -1,18 +1,33 @@
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-display",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+});
+
 export const metadata = {
-  title: "File Hosting",
-  description: "Upload dan share file dengan mudah",
+  title: "Xera",
+  description: "Simpan dan bagikan file dengan mudah",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id">
+    <html lang="id" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body
         style={{
           margin: 0,
           minHeight: "100vh",
-          background: "linear-gradient(180deg, #0b1424 0%, #101d33 100%)",
-          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          color: "#e5e9f0",
+          background: "#000000",
+          color: "#ededed",
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
         {children}
